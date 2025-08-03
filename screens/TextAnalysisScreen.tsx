@@ -1,18 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Animated, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Animated, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { PenTool, Send, RefreshCw, Brain, Sparkles, TrendingUp, Heart, Zap, ArrowLeft, CheckCircle, AlertCircle, FileText, Activity, Shield, Lightbulb } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MobileNavbar from '../components/MobileNavbar';
-import { InferenceClient } from "@huggingface/inference";
 
 const { width, height } = Dimensions.get('window');
 
 // Hugging Face Token
 const HF_TOKEN = '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';
-
-// Initialize Hugging Face client
-const client = new InferenceClient(HF_TOKEN);
 
 interface EmotionData {
   label: string;
@@ -44,7 +40,7 @@ const TextAnalysisScreen = ({ navigation }: any) => {
   const [analysisHistory, setAnalysisHistory] = useState<TextAnalysisResult[]>([]);
   const [wordCount, setWordCount] = useState(0);
   
-  // Animations
+  // Animations - Remove useNativeDriver for web compatibility
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -56,17 +52,17 @@ const TextAnalysisScreen = ({ navigation }: any) => {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
 
@@ -85,12 +81,12 @@ const TextAnalysisScreen = ({ navigation }: any) => {
           Animated.timing(pulseAnim, {
             toValue: 1.1,
             duration: 1000,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
             duration: 1000,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ])
       ).start();
@@ -163,12 +159,25 @@ const TextAnalysisScreen = ({ navigation }: any) => {
 
   const analyzeEmotionsWithHF = async (text: string) => {
     try {
-      const output = await client.textClassification({
-        model: "SamLowe/roberta-base-go_emotions",
-        inputs: text,
-        provider: "hf-inference",
-      });
+      console.log('Analyzing emotions with Hugging Face API...');
+      
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/SamLowe/roberta-base-go_emotions',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${HF_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ inputs: text }),
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const output = await response.json();
       console.log('Hugging Face emotion analysis:', output);
 
       // Process the results
@@ -213,22 +222,35 @@ Please provide:
 
 Format as JSON with keys: insights, recommendations, emergency_contact`;
 
-      const chatCompletion = await client.chatCompletion({
-        provider: "novita",
-        model: "mistralai/Mistral-7B-Instruct-v0.3",
-        messages: [
-          {
-            role: "user",
-            content: prompt,
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${HF_TOKEN}`,
+            'Content-Type': 'application/json',
           },
-        ],
-      });
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: 500,
+              temperature: 0.7,
+              return_full_text: false
+            }
+          }),
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const chatCompletion = await response.json();
       console.log('Mistral AI response:', chatCompletion);
 
       // Try to parse JSON from the response
       try {
-        const responseText = chatCompletion.choices[0]?.message?.content;
+        const responseText = chatCompletion[0]?.generated_text || chatCompletion.choices?.[0]?.message?.content;
         if (!responseText) {
           return createFallbackInsights(emotionData, text);
         }
@@ -301,6 +323,8 @@ Format as JSON with keys: insights, recommendations, emergency_contact`;
   };
 
   const analyzeText = async () => {
+    console.log('Analyze text button pressed');
+    
     if (!textContent.trim()) {
       Alert.alert('No Text', 'Please enter some text to analyze.');
       return;
@@ -777,14 +801,21 @@ const styles = StyleSheet.create({
   inputCard: {
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#059669',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 24px rgba(5, 150, 105, 0.15)',
+      },
+      default: {
+        shadowColor: '#059669',
+        shadowOffset: {
+          width: 0,
+          height: 8,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 12,
+      },
+    }),
   },
   inputHeader: {
     alignItems: 'center',
@@ -870,14 +901,21 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#059669',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 24px rgba(5, 150, 105, 0.15)',
+      },
+      default: {
+        shadowColor: '#059669',
+        shadowOffset: {
+          width: 0,
+          height: 8,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 12,
+      },
+    }),
   },
   analyzingContent: {
     alignItems: 'center',
@@ -929,14 +967,21 @@ const styles = StyleSheet.create({
   resultsCard: {
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#059669',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 24px rgba(5, 150, 105, 0.15)',
+      },
+      default: {
+        shadowColor: '#059669',
+        shadowOffset: {
+          width: 0,
+          height: 8,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+        elevation: 12,
+      },
+    }),
   },
   resultsHeader: {
     flexDirection: 'row',
@@ -1071,12 +1116,6 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     marginTop: 4,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
   insightsContainer: {
     marginBottom: 24,
   },
@@ -1160,14 +1199,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 12,
-    shadowColor: '#059669',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 12px rgba(5, 150, 105, 0.1)',
+      },
+      default: {
+        shadowColor: '#059669',
+        shadowOffset: {
+          width: 0,
+          height: 4,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+    }),
   },
   historyIconContainer: {
     width: 48,

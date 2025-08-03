@@ -60,8 +60,8 @@ const DashboardScreen = () => {
       case 'journal':
         router.push('/mood-journal');
         break;
-      case 'meditation':
-        router.push('/meditation');
+      case 'sleep':
+        router.push('/sleep-tracker');
         break;
       default:
         break;
@@ -298,14 +298,14 @@ const DashboardScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.quickActionCard}
-                onPress={() => handleQuickAction('meditation')}
+                onPress={() => handleQuickAction('sleep')}
               >
                 <LinearGradient
                   colors={['#F59E0B', '#D97706']}
                   style={styles.quickActionGradient}
                 >
                   <Heart size={24} color="#fff" />
-                  <Text style={styles.quickActionText}>Meditation</Text>
+                  <Text style={styles.quickActionText}>Sleep Tracker</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

@@ -6,6 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "neurooo",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -39,9 +41,7 @@
         "android.permission.WAKE_LOCK",
         "android.permission.FOREGROUND_SERVICE"
       ],
-      "allowBackup": true,
-      "targetSdkVersion": 33,
-      "compileSdkVersion": 33
+      "allowBackup": true
     },
     "web": {
       "bundler": "metro",

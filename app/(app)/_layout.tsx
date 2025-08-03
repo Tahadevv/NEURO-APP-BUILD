@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Brain, MessageCircle, Siren, Dumbbell, Lotus, Moon, Sun, Users } from 'lucide-react-native';
+import { Brain, MessageCircle, Siren, Dumbbell, Flower, Moon, Sun, Users } from 'lucide-react-native';
 
 export default function AppLayout() {
   return (
@@ -40,7 +40,7 @@ export default function AppLayout() {
         name="meditation"
         options={{
           title: 'Meditate',
-          tabBarIcon: ({ color, size }) => <Lotus size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Flower size={size} color={color} />,
         }}
       />
       <Tabs.Screen

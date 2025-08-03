@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Brain, Heart, Activity, Shield, ArrowRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,7 +12,9 @@ const SplashScreen = () => {
   const fadeAnim = new Animated.Value(0);
   
   useEffect(() => {
+    console.log('SplashScreen: Component mounted');
     const loadingTimer = setTimeout(() => {
+      console.log('SplashScreen: Loading complete');
       setIsLoading(false);
     }, 3000);
 
@@ -20,6 +22,7 @@ const SplashScreen = () => {
   }, []);
 
   useEffect(() => {
+    console.log('SplashScreen: currentScreen changed to', currentScreen);
     if (!isLoading && currentScreen === 0) {
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -37,10 +40,21 @@ const SplashScreen = () => {
   }, [isLoading, currentScreen]);
 
   const handleNext = () => {
+    console.log('SplashScreen: handleNext called, currentScreen:', currentScreen);
     if (currentScreen < splashFeatures.length) {
       setCurrentScreen(currentScreen + 1);
     } else if (currentScreen === splashFeatures.length) {
       setCurrentScreen(currentScreen + 1);
+    }
+  };
+
+  const handleNavigation = (route: string) => {
+    try {
+      console.log('SplashScreen: Navigating to:', route);
+      router.push(route);
+    } catch (error) {
+      console.error('SplashScreen: Navigation error:', error);
+      Alert.alert('Navigation Error', `Failed to navigate to ${route}`);
     }
   };
 
@@ -174,23 +188,30 @@ const SplashScreen = () => {
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
           style={[styles.button, styles.primaryButton]}
-          onPress={() => router.push('/login')}
+          onPress={() => handleNavigation('/login')}
         >
           <Text style={styles.primaryButtonText}>Login</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.button, styles.secondaryButton]}
-          onPress={() => router.push('/signup')}
+          onPress={() => handleNavigation('/signup')}
         >
           <Text style={styles.secondaryButtonText}>Sign Up</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.button, styles.ghostButton]}
-          onPress={() => router.push('/home')}
+          onPress={() => handleNavigation('/home')}
         >
           <Text style={styles.ghostButtonText}>Continue as Guest</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.button, styles.ghostButton]}
+          onPress={() => handleNavigation('/(app)/emotion-tracker')}
+        >
+          <Text style={styles.ghostButtonText}>Go to App (Debug)</Text>
         </TouchableOpacity>
     </View>
     </LinearGradient>

@@ -7,7 +7,6 @@ import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { InferenceClient } from '@huggingface/inference';
 import * as Notifications from 'expo-notifications';
-import * as Permissions from 'expo-permissions';
 
 const HF_TOKEN = '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';
 

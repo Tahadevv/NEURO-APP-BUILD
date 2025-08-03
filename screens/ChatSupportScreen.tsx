@@ -172,9 +172,21 @@ const ChatSupportScreen = () => {
     setInputText('');
     setIsTyping(true);
 
+    // Add a timeout to prevent typing indicator from getting stuck
+    const typingTimeout = setTimeout(() => {
+      setIsTyping(false);
+    }, 30000); // 30 second timeout
+
+    // Force scroll to bottom after user message
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+
     try {
       // Send message to API
       const botResponse = await sendMessageToAPI(userMessage.text);
+      
+      clearTimeout(typingTimeout); // Clear timeout since we got a response
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -184,7 +196,15 @@ const ChatSupportScreen = () => {
       };
       
       setMessages(prev => [...prev, botMessage]);
+      setIsTyping(false); // Stop typing when response is received
+      
+      // Force scroll to bottom after bot response
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error) {
+      clearTimeout(typingTimeout); // Clear timeout since we're handling the error
+      
       // Fallback response if API fails
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -193,14 +213,18 @@ const ChatSupportScreen = () => {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, fallbackMessage]);
+      setIsTyping(false); // Stop typing when fallback is shown
+      
+      // Force scroll to bottom after fallback message
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
       
       Alert.alert(
         'Connection Error',
         'Unable to connect to the chatbot service. Please check your internet connection and try again.',
         [{ text: 'OK' }]
       );
-    } finally {
-      setIsTyping(false);
     }
   };
 
@@ -209,23 +233,24 @@ const ChatSupportScreen = () => {
   };
 
   useEffect(() => {
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  }, [messages]);
+    // Scroll to bottom whenever messages change
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 200);
+    
+    return () => clearTimeout(timer);
+  }, [messages, isTyping]);
 
   const renderMessage = (message: Message, index: number) => {
     const isBot = message.sender === 'bot';
     const isLastMessage = index === messages.length - 1;
 
     return (
-      <Animated.View
+      <View
         key={message.id}
         style={[
           styles.messageBubble,
           isBot ? styles.botBubble : styles.userBubble,
-          isLastMessage && {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
         ]}
       >
         {isBot && (
@@ -246,7 +271,7 @@ const ChatSupportScreen = () => {
             {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
@@ -268,9 +293,14 @@ const ChatSupportScreen = () => {
       <View style={styles.contentContainer}>
         <ScrollView
           ref={scrollViewRef}
+          key={`messages-${messages.length}`}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          onContentSizeChange={() => {
+            setTimeout(() => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          }}
         >
           {/* Welcome Card */}
           <LinearGradient
